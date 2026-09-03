@@ -1,0 +1,50 @@
+###> symfony/framework-bundle ###
+/.env.local
+.env
+.env.local
+.env.local.php
+/.env.local.php
+/.env.*.local
+#/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+/public/build-dev/
+
+###> phpunit/phpunit ###
+/phpunit.xml
+.phpunit.result.cache
+###< phpunit/phpunit ###
+
+###> symfony/webpack-encore-bundle ###
+/node_modules/
+npm-debug.log
+yarn-error.log
+###< symfony/webpack-encore-bundle ###
+
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+/config/jwt/*.json
+/config/config/jwt/*.pem
+/config/config/jwt/*.json
+*.pem
+*.key
+###< lexik/jwt-authentication-bundle ###
+
+# Secrets & credentials
+config/firebase_credentials.json
+config/jwt/*.json
+
+# Backups / local dumps — these caused a leak before, never let them back in
+*.bak
+*.bak.*
+.env.*.bak*
+*.sql
+*.dump
+
+# OS / editor junk
+.DS_Store
+.idea/
+.vscode/

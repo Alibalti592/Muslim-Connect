@@ -1,0 +1,29 @@
+
+# Android signing credentials
+**/key.properties
+**/*.jks
+**/*.keystore
+
+# Local configuration
+**/local.properties
+**/.env
+**/.env.*
+**/.DS_Store
+
+# Flutter generated files
+**/.dart_tool/
+**/.flutter-plugins-dependencies
+**/.cxx/
+**/build/
+
+# iOS generated files
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/.last_build_id
+
+# Symfony generated assets
+**/public/build/
+
+# Firebase credentials
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase*credentials*.json

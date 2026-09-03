@@ -1,0 +1,354 @@
+<?php
+
+namespace App\Controller\Admin;
+
+use App\Entity\User;
+use App\Services\S3Service;
+use App\Services\UrlEncryptorService;
+use App\UIBuilder\UserUI;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+
+class LayoutController extends AbstractController
+{
+    public function __construct(private readonly CacheItemPoolInterface $cacheApp, UserUI $userUI,
+                                UrlEncryptorService $urlEncryptorService, private readonly S3Service $s3Service, private readonly EntityManagerInterface $entityManager)
+    {
+        $this->userUI = $userUI;
+        $this->urlEncryptorService = $urlEncryptorService;
+    }
+
+    #[Route('/v-load-menu-left')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function loadSidebarMenu(Request $request): Response
+    {
+        $menuName = 'sidear';
+        $currentRouteEncrypt = $request->get('cr');
+        $user = $this->getUser();
+        $firstname = $user->getFirstname();
+        $lastname = $user->getLastname();
+        $photoUrl = null;
+        if(!is_null($user->getPhoto())) {
+            $photoUrl = $this->s3Service->getURLFromMedia($user->getPhoto());
+        }
+        $headCard = [
+            'name' => $firstname,
+            'letters' => mb_strtoupper(mb_substr($firstname,0,1).mb_substr($lastname,0,1)),
+            'image' => $photoUrl
+        ];
+        if ($this->getParameter('kernel.environment') == 'dev') {
+            $this->cacheApp->deleteItem('menu_sidear');
+        }
+        $cachedMenu = $this->cacheApp->getItem('menu_' . $menuName);
+        if (!$cachedMenu->isHit()) {
+            $menu = [
+                "items" => [
+//                    [
+//                        'name' => "Dasboard",
+//                        'icon' => "icon-home",
+//                        'id' => 'dashboard',
+//                        'hasSub' => true,
+//                        'subItems' => [
+//                            [
+//                                'name' => "Dashboard",
+//                                'icon' => "iconido-structure",
+//                                'url' => $this->generateUrl("dashboard"),
+//                                'r' => "dashboard",
+//                            ],
+//                        ]
+//                    ],
+                    [
+                        'name' => "Utilisateurs",
+                        'icon' => "icon-users",
+                        'id' => 'users',
+                        'hasSub' => true,
+                        'subItems' => [
+                            [
+                                'name' => "Liste des utilisateurs",
+                                'icon' => "iconido-individuel",
+                                'url' => $this->generateUrl("admin_user_list"),
+                                'r' => "admin_user_list",
+                            ],
+                            [
+                                'name' => "Pompes funèbres",
+                                'icon' => "iconido-octagon",
+                                'url' => $this->generateUrl("admin_pompe_list"),
+                                'r' => "admin_pompe_list",
+                            ],
+                        ]
+                    ],
+                    [
+                        'name' => "Contenu",
+                        'icon' => "icon-box",
+                        'id' => 'content',
+                        'hasSub' => true,
+                        'subItems' => [
+                            [
+                                'name' => "Carte Textes",
+                                'icon' => "icon-feather",
+                                'url' => $this->generateUrl("admin_carte_list"),
+                                'r' => "admin_carte_list",
+                            ],
+                            [
+                                'name' => "Salats al-janaza",
+                                'icon' => "icon-codepen",
+                                'url' => $this->generateUrl("admin_salat_list"),
+                                'r' => "admin_salat_list",
+                            ],
+                            [
+                                'name' => "Mosquées",
+                                'icon' => "icon-home",
+                                'url' => $this->generateUrl("admin_mosque_list"),
+                                'r' => "admin_mosque_list",
+                            ],
+                            [
+                                'name' => "Imams",
+                                'icon' => "icon-users",
+                                'url' => $this->generateUrl("admin_imam_list"),
+                                'r' => "admin_imam_list",
+                            ],
+                            [
+                                'name' => "Maraudes",
+                                'icon' => "icon-thumbs-up",
+                                'url' => $this->generateUrl("admin_maraude_list"),
+                                'r' => "admin_maraude_list",
+                            ],
+                            [
+                                'name' => "Page App Contenu",
+                                'icon' => "icon-video",
+                                'url' => $this->generateUrl("admin_navpages_list"),
+                                'r' => "admin_navpages_list",
+                            ],
+                            [
+                                'name' => "Don ",
+                                'icon' => "icon-heart",
+                                'url' => $this->generateUrl("admin_don"),
+                                'r' => "admin_don",
+                            ],
+                            [
+                                'name' => "Foire aux questions",
+                                'icon' => "icon-help-circle",
+                                'url' => $this->generateUrl("admin_faq_list"),
+                                'r' => "admin_faq_list",
+                            ],
+                            [
+                                'name' => "Formalités administratives",
+                                'icon' => "icon-list",
+                                'url' => $this->generateUrl("admin_todo_list"),
+                                'r' => "admin_todo_list",
+                            ],
+                            [
+                                'name' => "Période de deuil",
+                                'icon' => "icon-calendar",
+                                'url' => $this->generateUrl("admin_deuil"),
+                                'r' => "admin_deuil",
+                            ],
+                            [
+                                'name' => "Texte intro",
+                                'icon' => "icon-align-center",
+                                'url' => $this->generateUrl("admin_intro"),
+                                'r' => "admin_intro",
+                            ],
+
+                            [
+                                'name' => "Page contenu",
+                                'icon' => "icon-layout",
+                                'url' => $this->generateUrl("admin_page_list"),
+                                'r' => "admin_page_list",
+                            ],
+                            [
+                                'name' => "Contenu Emails",
+                                'icon' => "icon-mail",
+                                'url' => $this->generateUrl("admin_email_list"),
+                                'r' => "admin_email_list",
+                            ],
+
+                        ]
+                    ],
+                    [
+                        'name' => "Push notifications",
+                        'icon' => "icon-bell",
+                        'id' => 'push_notifications',
+                        'hasSub' => true,
+                        'subItems' => [
+                            [
+                                'name' => "Push notifications",
+                                'icon' => "icon-bell",
+                                'url' => $this->generateUrl("admin_push_notifications"),
+                                'r' => "admin_push_notifications",
+                            ],
+                            [
+                                'name' => "Avis / critiques",
+                                'icon' => "icon-message-circle",
+                                'url' => $this->generateUrl("admin_feedback_list"),
+                                'r' => "admin_feedback_list",
+                            ],
+                            [
+                                'name' => "Versions mobile",
+                                'icon' => "icon-smartphone",
+                                'url' => $this->generateUrl("admin_app_versions"),
+                                'r' => "admin_app_versions",
+                            ],
+                        ]
+                    ],
+
+                ]
+            ];
+
+            $cachedMenu->set($menu);
+            $this->cacheApp->save($cachedMenu);
+        } else {
+            $menu = $cachedMenu->get();
+        }
+        $jsonResponse = new JsonResponse();
+        $jsonResponse->setData([
+            "headCard" => $headCard,
+            "menu" => $menu,
+            'r' => $currentRouteEncrypt
+        ]);
+        return $jsonResponse;
+    }
+
+    #[Route('/v-search-locations')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function searchLocations(Request $request): Response
+    {
+        try {
+            $rawSearch = trim((string) $request->get('search', ''));
+            if ($rawSearch === '') {
+                return new JsonResponse(['locations' => []]);
+            }
+
+            $isAddressSearch = $request->get('adresse') === 'true';
+            $normalizedSearch = preg_replace('/\s+/', ' ', preg_replace('/\s*\([^)]*\)/', '', $rawSearch));
+            $normalizedSearch = trim((string) $normalizedSearch);
+
+            $fetchResults = static function (array $queryParams): array {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, 'https://api-adresse.data.gouv.fr/search/?' . http_build_query($queryParams));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+                $response = curl_exec($ch);
+                if (curl_errno($ch)) {
+                    curl_close($ch);
+                    throw new \ErrorException();
+                }
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if ($httpCode !== 200) {
+                    throw new \ErrorException();
+                }
+
+                $decoded = json_decode((string) $response, true);
+                return is_array($decoded['features'] ?? null) ? $decoded['features'] : [];
+            };
+
+            $queries = [];
+            if ($isAddressSearch) {
+                $queries[] = [
+                    'q' => $normalizedSearch,
+                    'autocomplete' => 1,
+                    'limit' => 10,
+                    'type' => 'housenumber',
+                ];
+                $queries[] = [
+                    'q' => $normalizedSearch,
+                    'autocomplete' => 1,
+                    'limit' => 10,
+                    'type' => 'street',
+                ];
+                $queries[] = [
+                    'q' => $normalizedSearch,
+                    'autocomplete' => 1,
+                    'limit' => 10,
+                ];
+
+                $searchWithoutLeadingNumber = trim((string) preg_replace('/^\d+\s*/', '', $normalizedSearch));
+                if ($searchWithoutLeadingNumber !== '' && $searchWithoutLeadingNumber !== $normalizedSearch) {
+                    $queries[] = [
+                        'q' => $searchWithoutLeadingNumber,
+                        'autocomplete' => 1,
+                        'limit' => 10,
+                        'type' => 'street',
+                    ];
+                    $queries[] = [
+                        'q' => $searchWithoutLeadingNumber,
+                        'autocomplete' => 1,
+                        'limit' => 10,
+                    ];
+                }
+            } else {
+                $queries[] = [
+                    'q' => $normalizedSearch,
+                    'type' => 'municipality',
+                    'autocomplete' => 1,
+                    'limit' => 10,
+                ];
+            }
+
+            $seenLabels = [];
+            $locations = [];
+
+            foreach ($queries as $queryParams) {
+                $features = $fetchResults($queryParams);
+                foreach ($features as $result) {
+                    $properties = $result['properties'] ?? [];
+                    $geometry = $result['geometry'] ?? [];
+                    $coordinates = $geometry['coordinates'] ?? null;
+                    $label = trim((string) ($properties['label'] ?? ''));
+                    if ($label === '' || isset($seenLabels[$label]) || !is_array($coordinates) || count($coordinates) < 2) {
+                        continue;
+                    }
+
+                    $seenLabels[$label] = true;
+                    $locations[] = [
+                        'label' => $label,
+                        'postcode' => $properties['postcode'] ?? '',
+                        'city' => $properties['city'] ?? '',
+                        'region' => $properties['context'] ?? '',
+                        'lat' => floatval($coordinates[1]),
+                        'lng' => floatval($coordinates[0]),
+                        'adress' => $properties['name'] ?? '',
+                    ];
+                }
+
+                if (!empty($locations)) {
+                    break;
+                }
+            }
+
+            return new JsonResponse([
+                'locations' => $locations
+            ]);
+        } catch (\Throwable $th) {
+            $jsonResponse = new JsonResponse();
+            $jsonResponse->setStatusCode(500);
+            $jsonResponse->setData(['message' => "impossible de récupérer l'adresse"]);
+            return $jsonResponse;
+        }
+    }
+
+    #[Route('/v-search-users')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function searchUsers(Request $request): Response
+    {
+        $search = $request->get('search');
+        $users = $this->entityManager->getRepository(User::class)->findPaginatedUsers(0, 30, $search);
+        $jsonResponse = new JsonResponse();
+        $userUIs = [];
+        foreach ($users as $user) {
+            $userUIs[] = $this->userUI->getUserProfilUI($user);
+        }
+        $jsonResponse->setData([
+            'users' => $userUIs
+        ]);
+        return $jsonResponse;
+    }
+}
